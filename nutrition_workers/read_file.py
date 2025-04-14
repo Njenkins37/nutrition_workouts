@@ -82,29 +82,45 @@ class DatabaseInterface(DatabaseInit):
         return False
 
     def get_food_id(self):
+        """
+        Gets the food mapping dictionary based on food name
+        :return: the food mapping dictionary
+        """
         session = self.Session()
         food_map = {food.name: food.id for food in session.query(Food).all()}
         session.close()
         return food_map
 
     def get_workout_id(self):
+        """
+        Gets the workout mapping dictionary based on workout name
+        :return: the workout dictionary
+        """
         session = self.Session()
         workout_map = {workout.name: workout.id for workout in session.query(Workouts).all()}
         session.close()
         return workout_map
 
     def get_diet_log(self, param):
+        """
+        Reads the diet and logs sheets of the excel file and adds it to the database. Also calls the clear Excel file
+        function after retrieving the data.
+        :param param: Used to separate which mapping to return
+        :return: the data dictionary used to insert the data into database
+        """
         df = pd.read_excel(self.file_name, self.diet_sheet)
-        df['name'] = df['name'].apply(lambda x: x.strip().title())
+        df['name'] = df['name'].apply(lambda x: x.strip().title()) # format name in title to match database
 
+        # Find the mapping
         if param == 'diet':
             df['food_id'] = df['name'].map(self.food_map)
         elif param == 'log':
-            df['workout_id'] = df['name'].map(self.food_map)
+            df['workout_id'] = df['name'].map(self.workout_map)
 
         df.drop('name', axis=1, inplace=True)
         data = self.get_dict(df)
 
+        # If is_clear it will print that the data was retreived
         is_clear = self.clear_sheet_but_keep_header('diet')
         if is_clear:
             print(f'Data retrieved from {param} sheet and sheet cleared')
