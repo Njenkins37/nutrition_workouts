@@ -21,7 +21,7 @@ class ReadDatabaseInterface(DatabaseInit):
             row = {
                 "date": diet.date,
                 "food_id": diet.food_id,
-                "Time of Day": diet.time_of_day.value,
+                "time_of_day": diet.time_of_day.value,
                 'servings': diet.servings,
                 "food_name": food.name,
                 "protein": food.protein * diet.servings,
@@ -41,7 +41,7 @@ class ReadDatabaseInterface(DatabaseInit):
         return self.get_calories(df)
 
     def get_time_of_day_count(self):
-        df = self.food_df.groupby(['date', 'Time of Day'])[['protein', 'carbs', 'fat']].sum()
+        df = self.food_df.groupby(['date', 'time_of_day'])[['protein', 'carbs', 'fat']].sum()
         return self.get_calories(df)
 
 
