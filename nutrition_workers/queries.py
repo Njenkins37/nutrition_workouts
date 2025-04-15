@@ -7,6 +7,7 @@ class ReadDatabaseInterface(DatabaseInit):
     def __init__(self):
         super().__init__()
         self.food_df = self.get_food()
+        self.log_df = self.get_workout()
         self.day_summary = self.get_macro_count()
         self.time_summary = self.get_time_of_day_count()
 
@@ -44,8 +45,29 @@ class ReadDatabaseInterface(DatabaseInit):
         df = self.food_df.groupby(['date', 'time_of_day'])[['protein', 'carbs', 'fat']].sum()
         return self.get_calories(df)
 
+    def get_workout(self):
+        session = self.Session()
+        results = session.query(Workouts, Log).join(
+            Workouts, Log.workout_id == Workouts.id
+        ).all()
+        data = []
+        for workout, log in results:
+            row = {
+                "date": log.date,
+                'name': workout.name,
+                'weight': log.weight,
+                'reps': log.reps,
+                'sets': log.sets,
+                'notes': log.notes,
+                'muscles': workout.muscles
+            }
+            data.append(row)
+        session.close()
+        return pd.DataFrame(data)
+
 
 if __name__ == "__main__":
     test = ReadDatabaseInterface()
     print(test.day_summary)
     print(test.time_summary)
+

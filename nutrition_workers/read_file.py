@@ -14,7 +14,7 @@ class DatabaseInterface(DatabaseInit):
         The Excel file is located in the Files location.
         """
         super().__init__()
-        self.file_name = '../Files/nutrition_workouts.xlsx'
+        self.file_name = './Files/nutrition_workouts.xlsx'
         self.workouts_sheet = 'workouts'
         self.foods_sheet = 'foods'
         self.diet_sheet = 'diet'
@@ -108,25 +108,63 @@ class DatabaseInterface(DatabaseInit):
         :param param: Used to separate which mapping to return
         :return: the data dictionary used to insert the data into database
         """
-        df = pd.read_excel(self.file_name, self.diet_sheet)
-        df['name'] = df['name'].apply(lambda x: x.strip().title()) # format name in title to match database
 
         # Find the mapping
         if param == 'diet':
+            df = pd.read_excel(self.file_name, self.diet_sheet)
+            df['name'] = df['name'].apply(lambda x: x.strip().title())  # format name in title to match database
             df['food_id'] = df['name'].map(self.food_map)
+            for idx, row in df[df['food_id'].isnull()].iterrows():
+                best_match = self.lcs('food', row['name'])  # Get best matching food name
+                if best_match:
+                    df.at[idx, 'food_id'] = self.food_map.get(best_match)
         elif param == 'log':
+            df = pd.read_excel(self.file_name, self.log_sheet)
+            df['name'] = df['name'].apply(lambda x: x.strip().title())  # format name in title to match database
             df['workout_id'] = df['name'].map(self.workout_map)
+            for idx, row in df[df['workout_id'].isnull()].iterrows():
+                best_match = self.lcs('workout', row['name'])  # Get best matching food name
+                if best_match:
+                    df.at[idx, 'workout_id'] = self.workout_map.get(best_match)
 
         df.drop('name', axis=1, inplace=True)
         data = self.get_dict(df)
-
         # If is_clear it will print that the data was retreived
-        is_clear = self.clear_sheet_but_keep_header('diet')
+        is_clear = self.clear_sheet_but_keep_header(param)
         if is_clear:
             print(f'Data retrieved from {param} sheet and sheet cleared')
         else:
             print(f'There was no data to retrieve from {param}')
         return data
+
+    def lcs(self, param, word):
+
+        if param == 'food':
+            iterable = self.food_map.keys()
+        elif param == 'workout':
+            iterable = self.workout_map.keys()
+        else:
+            iterable=None
+
+        max_item = None
+        max_score = -1
+
+        for item in iterable:
+
+            m, n = len(item), len(word)
+            T = [[0] * (n + 1) for _ in range(m + 1)]
+            for i in range(1, m + 1):
+                for j in range(1, n + 1):
+                    if item[i - 1] == word[j - 1]:
+                        T[i][j] = T[i - 1][j - 1] + 1
+                    else:
+                        T[i][j] = max(T[i - 1][j], T[i][j - 1])
+            lcs_score = T[m][n]
+            if lcs_score > max_score:
+                max_score = lcs_score
+                max_item = item
+            return max_item
+
 
 
 if __name__ == '__main__':
